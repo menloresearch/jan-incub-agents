@@ -3,33 +3,34 @@ description: "Complete hyperparameter search covering BM25, dense retrieval, ins
 
 # List of configuration files to evaluate
 configs:
-  # # BM25 baselines (reduced from 6 to 2)
-  # - bm25_400.yaml
-  # - bm25_400_ce_marco.yaml
+  # BM25 baselines (reduced from 6 to 2)
+  - bm25_400.yaml
+  - bm25_400_ce_marco.yaml
   
   # Dense Retrieval (standard embeddings)
-  # - st_minilm_400.yaml
-  # - st_qwen_400.yaml
-  # - st_qwen_800.yaml
+  - st_minilm_400.yaml
+  - st_qwen_400.yaml
+  - st_qwen_800.yaml
+  - st_qwen_1200.yaml
   - st_gemma_400.yaml
   
-  # # Instruction-based embeddings (NEW)
-  # - instruct_qwen_400.yaml
-  # - instruct_qwen_800.yaml
-  # - instruct_gemma_400.yaml
-  # - instruct_qwen_ce_marco.yaml
+  # Instruction-based embeddings (NEW)
+  - instruct_qwen_400.yaml
+  - instruct_qwen_800.yaml
+  - instruct_gemma_400.yaml
+  - instruct_qwen_ce_marco.yaml
   
   # Processor Comparisons
   - bm25_400_markitdown.yaml
   - st_qwen_400_markitdown.yaml
   - st_qwen_400_docling.yaml
   
-  # # Advanced Reranking Combinations
-  # - st_minilm_400_ce_marco.yaml
-  # - st_qwen_400_ce_marco.yaml
-  # - st_qwen_400_ce_qwen.yaml
-  # - st_qwen_800_ce_qwen.yaml
-  # - st_qwen_ce_qwen_markitdown.yaml
+  # Advanced Reranking Combinations
+  - st_minilm_400_ce_marco.yaml
+  - st_qwen_400_ce_marco.yaml
+  - st_qwen_400_ce_qwen.yaml
+  - st_qwen_800_ce_qwen.yaml
+  - st_qwen_ce_qwen_markitdown.yaml
 
 # Evaluation settings
 settings:
