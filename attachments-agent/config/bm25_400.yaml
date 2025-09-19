@@ -1,5 +1,5 @@
-name: "BM25 Baseline (200 chunks)"
-chunk_size: 200
+name: "BM25 Baseline (400 chunks)"
+chunk_size: 400
 retrieval_method: "bm25"
 retrieval_kwargs:
   k1: 1.2
