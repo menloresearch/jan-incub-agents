@@ -17,6 +17,7 @@ import yaml
 import time
 from datetime import datetime
 from tqdm import tqdm
+from json_repair import repair_json
 from document_agents import SimpleRAGDocumentAgent
 from processors import PyPDF2Processor, MarkItDownProcessor, DoclingProcessor, NativeProcessor
 from utils import split_into_multi_chunks
@@ -127,9 +128,11 @@ Respond with valid JSON in this exact format:
             messages = [{"role": "user", "content": judge_prompt}]
             response = self.judge_llm.generate(messages)
 
-            # Parse JSON response (should be pure JSON due to response_format)
+            # Parse JSON response using json-repair as default
             try:
-                result = json.loads(response.strip())
+                # Use json-repair by default for more robust parsing
+                repaired_response = repair_json(response.strip())
+                result = json.loads(repaired_response)
 
                 return {
                     "is_relevant": bool(result.get("is_relevant", False)),
@@ -138,8 +141,8 @@ Respond with valid JSON in this exact format:
                     "raw_response": response,
                 }
 
-            except json.JSONDecodeError as e:
-                print(f"Failed to parse JSON response: {e}")
+            except Exception as e:
+                print(f"Failed to parse/repair JSON response: {e}")
                 print(f"Raw response: {response}")
 
                 # Fallback to default values
