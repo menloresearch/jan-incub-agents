@@ -1,0 +1,7 @@
+name: "Instruct Qwen3 Embedding (800 chunks)"
+chunk_size: 800
+retrieval_method: "instruct-sentence-transformers"
+retrieval_kwargs:
+  model_name: "Qwen/Qwen3-Embedding-0.6B"
+  instruction: "Given a document query, retrieve relevant passages that answer the query"
+reranker_method: null

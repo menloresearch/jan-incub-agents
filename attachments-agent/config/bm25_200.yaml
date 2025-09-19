@@ -1,0 +1,7 @@
+name: "BM25 Baseline (200 chunks)"
+chunk_size: 200
+retrieval_method: "bm25"
+retrieval_kwargs:
+  k1: 1.2
+  b: 0.75
+reranker_method: null

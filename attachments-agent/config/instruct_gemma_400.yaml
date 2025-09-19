@@ -1,0 +1,7 @@
+name: "Instruct EmbeddingGemma (400 chunks)"
+chunk_size: 400
+retrieval_method: "instruct-sentence-transformers"
+retrieval_kwargs:
+  model_name: "google/embeddinggemma-300m"
+  instruction: "Given a document query, retrieve relevant passages that answer the query"
+reranker_method: null

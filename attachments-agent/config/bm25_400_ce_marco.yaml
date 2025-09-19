@@ -1,0 +1,9 @@
+name: "BM25 + Cross-encoder (MS MARCO)"
+chunk_size: 400
+retrieval_method: "bm25"
+retrieval_kwargs:
+  k1: 1.2
+  b: 0.75
+reranker_method: "cross-encoder"
+reranker_kwargs:
+  model_name: "cross-encoder/ms-marco-MiniLM-L-2-v2"

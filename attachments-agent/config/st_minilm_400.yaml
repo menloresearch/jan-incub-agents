@@ -1,0 +1,6 @@
+name: "SentenceTransformers MiniLM (400 chunks)"
+chunk_size: 400
+retrieval_method: "sentence-transformers"
+retrieval_kwargs:
+  model_name: "all-MiniLM-L6-v2"
+reranker_method: null

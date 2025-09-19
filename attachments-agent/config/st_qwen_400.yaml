@@ -1,0 +1,6 @@
+name: "SentenceTransformers Qwen3 (400 chunks)"
+chunk_size: 400
+retrieval_method: "sentence-transformers"
+retrieval_kwargs:
+  model_name: "Qwen/Qwen3-Embedding-0.6B"
+reranker_method: null
