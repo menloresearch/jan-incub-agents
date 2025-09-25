@@ -145,3 +145,53 @@ class SimpleRAGDocumentAgent(DocumentAgentBase):
             system_prompt=self.system_prompt,
             llm=self.llm,
         )
+    
+    def move_models_to_cpu(self):
+        """Move all models from GPU to CPU to free GPU memory."""
+        import torch
+        
+        # Move retrieval model to CPU if it has a model attribute
+        if hasattr(self.retrieval, 'model') and hasattr(self.retrieval.model, 'to'):
+            try:
+                self.retrieval.model.to('cpu')
+            except Exception as e:
+                print(f"Warning: Could not move retrieval model to CPU: {e}")
+        
+        # Move reranker model to CPU if it exists and has a model attribute
+        if self.reranker and hasattr(self.reranker, 'model') and hasattr(self.reranker.model, 'to'):
+            try:
+                self.reranker.model.to('cpu')
+            except Exception as e:
+                print(f"Warning: Could not move reranker model to CPU: {e}")
+        
+        # Clear GPU cache
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    
+    def cleanup_models(self):
+        """Clean up models and free memory."""
+        import torch
+        import gc
+        
+        # Move models to CPU first
+        self.move_models_to_cpu()
+        
+        # Delete model references if possible
+        try:
+            if hasattr(self.retrieval, 'model'):
+                del self.retrieval.model
+        except Exception:
+            pass
+            
+        try:
+            if self.reranker and hasattr(self.reranker, 'model'):
+                del self.reranker.model
+        except Exception:
+            pass
+        
+        # Force garbage collection
+        gc.collect()
+        
+        # Clear GPU cache
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()

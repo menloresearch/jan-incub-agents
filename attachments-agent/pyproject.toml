@@ -20,4 +20,8 @@ dependencies = [
     "numpy>=2.3.3",
     "huggingface-hub>=0.35.0",
     "json-repair",
+    "matplotlib>=3.10.6",
+    "seaborn>=0.13.2",
+    "plotly>=6.3.0",
+    "marker-pdf>=1.10.0",
 ]

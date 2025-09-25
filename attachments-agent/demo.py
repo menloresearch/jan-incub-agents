@@ -50,7 +50,7 @@ def run_demo():
     )
 
     # Document path
-    document_path = Path("data/Campaign_038_Introducing_AC_Whitepaper_v5e.pdf")
+    document_path = Path("documents/Campaign_038_Introducing_AC_Whitepaper_v5e.pdf")
 
     if not document_path.exists():
         print(f"Error: Document not found at {document_path}")

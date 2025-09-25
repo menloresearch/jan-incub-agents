@@ -83,6 +83,39 @@ class DoclingProcessor(ProcessorBase):
         return result.document.export_to_text()
 
 
+class MarkerProcessor(ProcessorBase):
+    """Processor using Marker to convert PDF to markdown with high accuracy."""
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        try:
+            from marker.converters.pdf import PdfConverter
+            from marker.models import create_model_dict
+            from marker.output import text_from_rendered
+            
+            # Initialize converter with model artifacts
+            self.converter = PdfConverter(
+                artifact_dict=create_model_dict(),
+            )
+            self.text_from_rendered = text_from_rendered
+        except ImportError:
+            raise ImportError("Marker library not installed. Install with: pip install marker-pdf")
+    
+    def file_to_text(self, file: Path) -> str:
+        """Extract text from PDF using Marker."""
+        if not file.exists():
+            raise FileNotFoundError(f"File not found: {file}")
+        
+        if file.suffix.lower() != '.pdf':
+            raise ValueError(f"MarkerProcessor only supports PDF files, got: {file.suffix}")
+        
+        # Convert PDF to markdown using Marker's new API
+        rendered = self.converter(str(file))
+        text, _, images = self.text_from_rendered(rendered)
+        
+        return text
+
+
 class NativeProcessor(ProcessorBase):
     """Processor that returns file content directly for native LLM processing."""
     

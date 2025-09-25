@@ -2,6 +2,7 @@ import re
 from typing import List, Dict, Any, Optional
 import math
 from abc import ABC, abstractmethod
+import torch
 
 
 def split_into_multi_chunks(text: str, chunk_size: int, overlap: int = 50) -> List[str]:
@@ -125,7 +126,11 @@ class SentenceTransformerRetrieval(RetrievalBase):
             import numpy as np
             from sklearn.metrics.pairwise import cosine_similarity
             
-            self.model = SentenceTransformer(model_name)
+            # Apply float16 only for non-Gemma embedding models
+            if "gemma" in model_name.lower():
+                self.model = SentenceTransformer(model_name)
+            else:
+                self.model = SentenceTransformer(model_name, model_kwargs={"torch_dtype": torch.float16})
             self.np = np
             self.cosine_similarity = cosine_similarity
         except ImportError:
@@ -137,16 +142,33 @@ class SentenceTransformerRetrieval(RetrievalBase):
             return []
         
         # Encode query and documents
-        query_embedding = self.model.encode([query])
-        doc_embeddings = self.model.encode(documents)
-        
-        # Compute similarities
-        similarities = self.cosine_similarity(query_embedding, doc_embeddings)[0]
-        
-        # Get top-k most similar documents
-        top_indices = self.np.argsort(similarities)[::-1][:top_k]
-        
-        return [documents[i] for i in top_indices]
+        try:
+            query_embedding = self.model.encode([query])
+            # print(len(documents), sum([len(doc) for doc in documents]), 'documents')
+            doc_embeddings = self.model.encode(documents, batch_size=1)
+
+            # print(query_embedding, 'query_embedding')
+            
+            # Compute similarities
+            similarities = self.cosine_similarity(query_embedding, doc_embeddings)[0]
+            
+            # Get top-k most similar documents
+            top_indices = self.np.argsort(similarities)[::-1][:top_k]
+            
+            return [documents[i] for i in top_indices]
+        finally:
+            try:
+                del query_embedding
+                del doc_embeddings
+                del similarities
+            except Exception:
+                pass
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+            except Exception:
+                pass
 
 
 class InstructSentenceTransformerRetrieval(RetrievalBase):
@@ -157,8 +179,12 @@ class InstructSentenceTransformerRetrieval(RetrievalBase):
             from sentence_transformers import SentenceTransformer
             import numpy as np
             from sklearn.metrics.pairwise import cosine_similarity
-            
-            self.model = SentenceTransformer(model_name)
+                                    
+            # Apply float16 only for non-Gemma embedding models
+            if "gemma" in model_name.lower():
+                self.model = SentenceTransformer(model_name)
+            else:
+                self.model = SentenceTransformer(model_name, model_kwargs={"torch_dtype": torch.float16})
             self.instruction = instruction
             self.np = np
             self.cosine_similarity = cosine_similarity
@@ -178,16 +204,30 @@ class InstructSentenceTransformerRetrieval(RetrievalBase):
         instructed_query = self._format_instruction(query)
         
         # Encode query and documents
-        query_embedding = self.model.encode([instructed_query])
-        doc_embeddings = self.model.encode(documents)
-        
-        # Compute similarities
-        similarities = self.cosine_similarity(query_embedding, doc_embeddings)[0]
-        
-        # Get top-k most similar documents
-        top_indices = self.np.argsort(similarities)[::-1][:top_k]
-        
-        return [documents[i] for i in top_indices]
+        try:
+            query_embedding = self.model.encode([instructed_query])
+            doc_embeddings = self.model.encode(documents, batch_size=1)
+            
+            # Compute similarities
+            similarities = self.cosine_similarity(query_embedding, doc_embeddings)[0]
+            
+            # Get top-k most similar documents
+            top_indices = self.np.argsort(similarities)[::-1][:top_k]
+            
+            return [documents[i] for i in top_indices]
+        finally:
+            try:
+                del query_embedding
+                del doc_embeddings
+                del similarities
+            except Exception:
+                pass
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+            except Exception:
+                pass
 
 
 class RerankerBase(ABC):
@@ -218,14 +258,28 @@ class CrossEncoderReranker(RerankerBase):
             return documents
         
         # Score query-document pairs
-        pairs = [(query, doc) for doc in documents]
-        scores = self.model.predict(pairs)
-        
-        # Sort by score and return top-k
-        scored_docs = list(zip(scores, documents))
-        scored_docs.sort(key=lambda x: x[0], reverse=True)
-        
-        return [doc for _, doc in scored_docs[:top_k]]
+        try:
+            pairs = [(query, doc) for doc in documents]
+            scores = self.model.predict(pairs)
+            
+            # Sort by score and return top-k
+            scored_docs = list(zip(scores, documents))
+            scored_docs.sort(key=lambda x: x[0], reverse=True)
+            
+            return [doc for _, doc in scored_docs[:top_k]]
+        finally:
+            try:
+                del pairs
+                del scores
+                del scored_docs
+            except Exception:
+                pass
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+            except Exception:
+                pass
 
 
 class QwenReranker(RerankerBase):
@@ -277,13 +331,31 @@ class QwenReranker(RerankerBase):
                 
                 # Get probabilities for "Yes" and "No" tokens
                 true_prob = torch.softmax(logits[[self.true_token_id, self.false_token_id]], dim=0)[0]
-                scores.append(true_prob.cpu().item())
+                scores.append(true_prob.detach().cpu().item())
+            try:
+                del inputs
+                del outputs
+                del logits
+            except Exception:
+                pass
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
         
         # Sort by score and return top-k
         scored_docs = list(zip(scores, documents))
         scored_docs.sort(key=lambda x: x[0], reverse=True)
         
-        return [doc for _, doc in scored_docs[:top_k]]
+        try:
+            return [doc for _, doc in scored_docs[:top_k]]
+        finally:
+            try:
+                del pairs
+                del scores
+                del scored_docs
+            except Exception:
+                pass
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
 
 def load_retrieval(retrieval_method: str, **kwargs) -> RetrievalBase:
