@@ -3,38 +3,51 @@ description: "Complete hyperparameter search covering BM25, dense retrieval, ins
 
 # List of configuration files to evaluate
 configs:
-  # BM25 baselines (reduced from 6 to 2)
-  - bm25_400.yaml
-  - bm25_400_ce_marco.yaml
+  # # BM25 baselines (reduced from 6 to 2)
+  # - bm25_400.yaml
+  # - bm25_400_ce_marco.yaml
   
-  # Dense Retrieval (standard embeddings)
-  - st_minilm_400.yaml
-  - st_qwen_400.yaml
-  - st_qwen_800.yaml
-  - st_qwen_1200.yaml
-  - st_gemma_400.yaml
+  # # Dense Retrieval (standard embeddings)
+  # - st_minilm_400.yaml
+  # - st_qwen_400.yaml
+  # - st_qwen_800.yaml
+  # - st_qwen_1200.yaml
+  # - st_gemma_400.yaml
+  # - st_gemma_400_docling.yaml
   
-  # Instruction-based embeddings (NEW)
-  - instruct_qwen_400.yaml
-  - instruct_qwen_800.yaml
-  - instruct_gemma_400.yaml
-  - instruct_qwen_ce_marco.yaml
+  # # Instruction-based embeddings (NEW)
+  # - instruct_qwen_400.yaml
+  # - instruct_qwen_800.yaml
+  # - instruct_gemma_400.yaml
+  # - instruct_qwen_ce_marco.yaml
   
-  # Processor Comparisons
-  - bm25_400_markitdown.yaml
-  - st_qwen_400_markitdown.yaml
-  - st_qwen_400_docling.yaml
+  # # Multilingual embeddings
+  - bge_m3_400.yaml
+  - multilingual_e5_large_400.yaml
+  - snowflake_arctic_embed_l_400.yaml
   
-  # Advanced Reranking Combinations
-  - st_minilm_400_ce_marco.yaml
-  - st_qwen_400_ce_marco.yaml
-  - st_qwen_400_ce_qwen.yaml
-  - st_qwen_800_ce_qwen.yaml
-  - st_qwen_ce_qwen_markitdown.yaml
+  # # Processor Comparisons
+  # - bm25_400_markitdown.yaml
+  # - st_qwen_400_markitdown.yaml
+  # - st_qwen_400_docling.yaml
+  
+  # # Marker Document Processor Comparisons
+  # - bm25_400_marker.yaml
+  # - st_gemma_400_marker.yaml
+  # - st_qwen8b_400_marker.yaml
+  # - st_qwen4b_400_marker.yaml
+  
+  # # Advanced Reranking Combinations
+  # - st_minilm_400_ce_marco.yaml
+  # - st_qwen_400_ce_marco.yaml
+  # - st_qwen_400_ce_qwen.yaml
+  # - st_qwen_800_ce_qwen.yaml
+  # - st_qwen_ce_qwen_markitdown.yaml
+  # - bm25_400_docling.yaml
 
 # Evaluation settings
 settings:
-  max_examples: 2
+  # max_examples: 2
   output_dir: "results"
   csv_filename: "retrieval_evaluation_results.csv"
   json_filename: "retrieval_evaluation_results.json"

@@ -1,0 +1,7 @@
+name: "SentenceTransformers EmbeddingGemma (400 chunks)"
+chunk_size: 400
+retrieval_method: "sentence-transformers"
+retrieval_kwargs:
+  model_name: "google/embeddinggemma-300m"
+reranker_method: null
+processor_class: "DoclingProcessor"

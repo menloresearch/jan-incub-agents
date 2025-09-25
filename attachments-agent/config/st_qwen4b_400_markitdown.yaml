@@ -1,0 +1,7 @@
+name: "ST Qwen3 4B (400 chunks, MarkItDown)"
+chunk_size: 400
+retrieval_method: "sentence-transformers"
+retrieval_kwargs:
+  model_name: "Qwen/Qwen3-Embedding-4B"
+reranker_method: null
+processor_class: "MarkItDownProcessor"

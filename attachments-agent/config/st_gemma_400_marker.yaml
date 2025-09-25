@@ -1,0 +1,7 @@
+name: "ST Gemma 9B (400 chunks, Marker)"
+chunk_size: 400
+retrieval_method: "sentence-transformers"
+retrieval_kwargs:
+  model_name: "google/embeddinggemma-300m"
+reranker_method: null
+processor_class: "MarkerProcessor"

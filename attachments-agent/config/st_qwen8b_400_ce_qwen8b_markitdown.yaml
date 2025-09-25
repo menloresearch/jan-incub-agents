@@ -1,0 +1,9 @@
+name: "ST Qwen3 8B + Qwen8B Reranker (MarkItDown)"
+chunk_size: 400
+retrieval_method: "sentence-transformers"
+retrieval_kwargs:
+  model_name: "Qwen/Qwen3-Embedding-8B"
+reranker_method: "qwen-reranker"
+reranker_kwargs:
+  model_name: "Qwen/Qwen3-Reranker-8B"
+processor_class: "MarkItDownProcessor"

@@ -1,0 +1,8 @@
+name: "ST Qwen3 4B + Qwen4B Reranker"
+chunk_size: 400
+retrieval_method: "sentence-transformers"
+retrieval_kwargs:
+  model_name: "Qwen/Qwen3-Embedding-4B"
+reranker_method: "qwen-reranker"
+reranker_kwargs:
+  model_name: "Qwen/Qwen3-Reranker-4B"

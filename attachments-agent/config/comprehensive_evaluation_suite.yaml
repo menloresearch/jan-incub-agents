@@ -1,0 +1,44 @@
+name: "NEW Qwen Scaling & Processor Ablation Configs"
+description: "Only NEW configurations not covered in the original evaluation_suite.yaml - focuses on Qwen model scaling (4B/8B) and expanded processor ablations"
+
+# List of NEW configuration files to evaluate (not in original evaluation_suite.yaml)
+configs:
+  # === NEW QWEN EMBEDDING SCALING STUDY ===
+  # Pure embedding scaling (no reranker) - NEW 4B/8B models
+  - st_qwen4b_400.yaml
+  - st_qwen8b_400.yaml
+  
+  # Same-scale embedding + reranker pairs - NEW 4B/8B combinations
+  - st_qwen4b_400_ce_qwen4b.yaml
+  - st_qwen8b_400_ce_qwen8b.yaml
+  
+  # # === NEW RERANKER EFFECT STUDY ===
+  # # Mixed-scale combinations to isolate reranker effects - ALL NEW
+  # - st_qwen4b_400_ce_qwen0_6b.yaml    # 4B embedding + 0.6B reranker
+  # - st_qwen8b_400_ce_qwen0_6b.yaml    # 8B embedding + 0.6B reranker
+  # - st_qwen0_6b_400_ce_qwen4b.yaml    # 0.6B embedding + 4B reranker
+  # - st_qwen0_6b_400_ce_qwen8b.yaml    # 0.6B embedding + 8B reranker
+  
+  # === NEW PROCESSOR ABLATION STUDY ===
+  # Processor ablation with NEW 4B models
+  - st_qwen4b_400_docling.yaml
+  - st_qwen4b_400_markitdown.yaml
+  
+  # Processor ablation with NEW 8B models
+  - st_qwen8b_400_docling.yaml
+  - st_qwen8b_400_markitdown.yaml
+  
+  # Processor ablation with rerankers (4B scale) - ALL NEW
+  - st_qwen4b_400_ce_qwen4b_docling.yaml
+  - st_qwen4b_400_ce_qwen4b_markitdown.yaml
+  
+  # Processor ablation with rerankers (8B scale) - ALL NEW
+  - st_qwen8b_400_ce_qwen8b_docling.yaml
+  - st_qwen8b_400_ce_qwen8b_markitdown.yaml
+
+# Evaluation settings
+settings:
+  # max_examples: 5  # Uncomment for quick testing
+  output_dir: "results"
+  csv_filename: "comprehensive_qwen_scaling_evaluation.csv"
+  json_filename: "comprehensive_qwen_scaling_evaluation.json"
