@@ -90,7 +90,7 @@ async def health_check():
 async def upload_and_process(
     file: UploadFile = File(...),
     chat_history: str = Form(..., description="JSON string of chat history"),
-    max_tokens: Optional[int] = Form(None),
+    max_tokens: Optional[int] = Form(-1),
 ):
     """
     Upload a document file and retrieve relevant chunks based on chat history.
@@ -195,15 +195,6 @@ async def shutdown_event():
 def main():
     """
     Main function to run the FastAPI server with CLI arguments.
-
-    Note: It's recommended to use uvicorn CLI instead:
-
-    # Set config and run with uvicorn CLI:
-    export CHUNK_SERVICE_CONFIG="../config/bge_m3_400.yaml"
-    uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-
-    # Or run this script directly (legacy):
-    python main.py --config ../config/bge_m3_400.yaml
     """
     parser = argparse.ArgumentParser(description="Document Chunk Service API")
     parser.add_argument(
