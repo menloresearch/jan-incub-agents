@@ -4,4 +4,14 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11.11"
-dependencies = []
+dependencies = [
+    "fastapi>=0.117.1",
+    "pypdf2>=3.0.1",
+    "python-multipart>=0.0.20",
+    "pyyaml>=6.0.3",
+    "sentence-transformers>=5.1.1",
+    "torch>=2.8.0",
+    "uvicorn>=0.37.0",
+]
+[tool.uv]
+package = true
