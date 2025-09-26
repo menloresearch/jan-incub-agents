@@ -91,6 +91,7 @@ async def upload_and_process(
     file: UploadFile = File(...),
     chat_history: str = Form(..., description="JSON string of chat history"),
     max_tokens: Optional[int] = Form(-1),
+    clear_retrieval_history: bool = Form(False, description="Remove previously retrieved chunks from conversation"),
 ):
     """
     Upload a document file and retrieve relevant chunks based on chat history.
@@ -99,6 +100,7 @@ async def upload_and_process(
     - file: PDF document or .txt file
     - chat_history: JSON string of chat messages with 'role' and 'content' keys
     - max_tokens: Optional maximum tokens to consider
+    - clear_retrieval_history: Remove previously retrieved chunks from conversation. Default: False
 
     Output:
     - Enhanced chat_history with retrieved chunks inserted as context
@@ -140,6 +142,7 @@ async def upload_and_process(
                 file_path=tmp_file_path,
                 chat_history=chat_history_dict,
                 max_tokens=max_tokens,
+                clear_retrieval_history=clear_retrieval_history,
             )
 
             # Convert back to Pydantic models

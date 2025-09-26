@@ -9,7 +9,7 @@ A FastAPI-based service for document chunking and retrieval without LLM generati
 Run the server with a configuration file:
 
 ```bash
-export CHUNK_SERVICE_CONFIG="bge_m3_400.yaml"
+export CHUNK_SERVICE_CONFIG="./config/bge_m3_400.yaml"
 uv run uvicorn modules.main:app
 ```
 

@@ -59,6 +59,7 @@ class ChunkService:
         document_text: Optional[str] = None,
         chat_history: List[Dict[str, str]] = None,
         max_tokens: Optional[int] = -1,
+        clear_retrieval_history: bool = False,
     ) -> Dict[str, Any]:
         """
         Process document and retrieve relevant chunks based on chat history.
@@ -68,6 +69,7 @@ class ChunkService:
             document_text: Document text directly (optional if file_path provided)
             chat_history: List of chat messages with 'role' and 'content' keys
             max_tokens: Maximum tokens to consider (optional override)
+            clear_retrieval_history: Remove previously retrieved chunks from conversation. Default: False
 
         Returns:
             Dictionary containing chat_history with retrieved chunks inserted as context
@@ -80,6 +82,10 @@ class ChunkService:
 
             if not chat_history:
                 chat_history = []
+
+            # Clear previously retrieved chunks from chat history if enabled
+            if clear_retrieval_history:
+                chat_history = self._clear_previous_retrieval_chunks(chat_history)
 
             # Get document text
             if document_text:
@@ -218,6 +224,35 @@ class ChunkService:
 
         except Exception as e:
             return {"error": str(e), "chat_history": chat_history}
+
+    def _clear_previous_retrieval_chunks(self, chat_history: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """
+        Remove previously retrieved chunks from chat history.
+        
+        This method identifies and removes messages that contain retrieved document chunks
+        to prevent context overflow in multi-turn conversations.
+        
+        Args:
+            chat_history: List of chat messages
+            
+        Returns:
+            Filtered chat history without previous retrieval chunks
+        """
+        filtered_history = []
+        
+        for message in chat_history:
+            content = message.get("content", "")
+            role = message.get("role", "")
+            
+            # Skip messages that contain retrieved chunk information
+            # We identify these by looking for the specific pattern used in context messages
+            if (role == "user" and 
+                content.startswith("Retrieved relevant information from the document:")):
+                continue
+                
+            filtered_history.append(message)
+        
+        return filtered_history
 
     def cleanup_models(self):
         """Clean up models and free memory."""
