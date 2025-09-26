@@ -10,7 +10,7 @@ Run the server with a configuration file:
 
 ```bash
 export CHUNK_SERVICE_CONFIG="bge_m3_400.yaml"
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+uv run uvicorn main:app
 ```
 
 ### API Endpoints
