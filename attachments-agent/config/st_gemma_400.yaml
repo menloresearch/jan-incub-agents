@@ -3,4 +3,5 @@ chunk_size: 400
 retrieval_method: "sentence-transformers"
 retrieval_kwargs:
   model_name: "google/embeddinggemma-300m"
+  top_k: 10
 reranker_method: null

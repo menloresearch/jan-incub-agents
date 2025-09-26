@@ -2,7 +2,9 @@ name: "ST Qwen3 4B + Qwen0.6B Reranker (Mixed Scale)"
 chunk_size: 400
 retrieval_method: "sentence-transformers"
 retrieval_kwargs:
-  model_name: "Qwen/Qwen3-Embedding-4B"
+  model_namqe: "Qwen/Qwen3-Embedding-4B
+  top_k: 10"
 reranker_method: "qwen-reranker"
 reranker_kwargs:
   model_name: "Qwen/Qwen3-Reranker-0.6B"
+  top_k: 10

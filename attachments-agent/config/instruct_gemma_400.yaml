@@ -4,4 +4,5 @@ retrieval_method: "instruct-sentence-transformers"
 retrieval_kwargs:
   model_name: "google/embeddinggemma-300m"
   instruction: "Given a document query, retrieve relevant passages that answer the query"
+  top_k: 10
 reranker_method: null

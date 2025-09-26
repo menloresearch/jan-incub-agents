@@ -3,5 +3,6 @@ chunk_size: 400
 retrieval_method: "sentence-transformers"
 retrieval_kwargs:
   model_name: "Qwen/Qwen3-Embedding-8B"
+  top_k: 10
 reranker_method: null
 processor_class: "DoclingProcessor"

@@ -39,8 +39,6 @@ configs:
 # Evaluation settings
 settings:
   # max_examples: 5  # Uncomment for quick testing
-  top_k_retrieval: 10  # Number of chunks to retrieve initially
-  top_k_rerank: 10     # Number of chunks to keep after reranking
   output_dir: "results"
   csv_filename: "comprehensive_qwen_scaling_evaluation.csv"
   json_filename: "comprehensive_qwen_scaling_evaluation.json"

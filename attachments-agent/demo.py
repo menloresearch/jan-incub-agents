@@ -28,7 +28,7 @@ def run_demo():
 
     # Create the RAG agent
     agent = SimpleRAGDocumentAgent(
-        model_id="gpt-4",
+        model_id="gpt-4o",
         base_url_llm=os.getenv("OPENAI_BASE_URL"),
         processor_class=PyPDF2Processor,
         processor_kwargs={},

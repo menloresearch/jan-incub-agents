@@ -17,7 +17,10 @@ import io
 import base64
 
 from processors import PyPDF2Processor
+
 from document_agents import SimpleRAGDocumentAgent
+
+# from document_agents_migrated import SimpleRAGDocumentAgent
 
 # Configure Streamlit page
 st.set_page_config(
@@ -196,15 +199,17 @@ def create_agent_from_config(
         processor_kwargs={},
         system_prompt="""You are an expert document analyst. Your task is to carefully analyze documents and provide accurate, specific answers based on the content. When answering questions, focus on extracting precise information and cite it clearly. If the information is not available in the document, state that explicitly.""",
         # RAG Configuration from config
-        chunk_size=config.get("chunk_size", 400),
+        chunk_size=config.get("chunk_size", 10),
+        top_k_retrieval=config.get("top_k_retrieval", 10),
+        top_k_rerank=config.get("top_k_rerank", 10),
         retrieval_method=config.get("retrieval_method", "bm25"),
         retrieval_kwargs=config.get("retrieval_kwargs", {}),
         reranker_method=config.get("reranker_method"),
         reranker_kwargs=config.get("reranker_kwargs", {}),
         # LLM parameters
         sampling_params={
-            "temperature": 0.1,
-            "max_tokens": 500,
+            "temperature": 0.0,
+            # "max_tokens": 500,
         },
     )
 

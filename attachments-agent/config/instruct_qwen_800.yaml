@@ -4,4 +4,5 @@ retrieval_method: "instruct-sentence-transformers"
 retrieval_kwargs:
   model_name: "Qwen/Qwen3-Embedding-0.6B"
   instruction: "Given a document query, retrieve relevant passages that answer the query"
+  top_k: 10
 reranker_method: null

@@ -3,4 +3,5 @@ chunk_size: 400
 retrieval_method: "sentence-transformers"
 retrieval_kwargs:
   model_name: "all-MiniLM-L6-v2"
+  top_k: 10
 reranker_method: null

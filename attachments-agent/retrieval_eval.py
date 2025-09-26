@@ -2,6 +2,8 @@
 """
 Evaluation pipeline for retrieval + reranking using MMLongBench-Doc dataset.
 Uses GPT-4o-mini as LLM judge to compare retrieved chunks with expected answers.
+
+MIGRATED VERSION: Uses ChunkService from poc/chunk_service.py instead of SimpleRAGDocumentAgent
 """
 
 import json
@@ -18,15 +20,27 @@ import time
 from datetime import datetime
 from tqdm import tqdm
 from json_repair import repair_json
-from document_agents import SimpleRAGDocumentAgent
-from processors import PyPDF2Processor, MarkItDownProcessor, DoclingProcessor, NativeProcessor, MarkerProcessor
+import sys
+
+# Add poc directory to path to import ChunkService
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "poc"))
+
+from chunk_service import ChunkService, create_chunk_service_from_config
+from processors import (
+    PyPDF2Processor,
+    MarkItDownProcessor,
+    DoclingProcessor,
+    NativeProcessor,
+    MarkerProcessor,
+)
 from utils import split_into_multi_chunks
 from llm_wrapper import OpenAIApiWrapper
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import traceback
 
+
 class RetrievalEvaluator:
-    """Evaluator for retrieval + reranking systems."""
+    """Evaluator for retrieval + reranking systems using ChunkService."""
 
     def __init__(
         self,
@@ -40,7 +54,7 @@ class RetrievalEvaluator:
             "OPENAI_BASE_URL", "https://api.openai.com/v1"
         )
         self.judge_workers = max(1, int(judge_workers))
-        
+
         # Mapping of processor class names to actual classes
         self.processor_classes = {
             "PyPDF2Processor": PyPDF2Processor,
@@ -55,16 +69,15 @@ class RetrievalEvaluator:
             model_id=self.judge_model,
             base_url=self.base_url,
             sampling_params={
-                "temperature": 0.1,
-                # "max_tokens": 1024,
+                "temperature": 0.0,
                 "response_format": {"type": "json_object"},
             },
         )
-        
-        # Store current RAG agent for cleanup
-        self._current_rag_agent = None
 
-    def create_rag_agent(
+        # Store current chunk service for cleanup
+        self._current_chunk_service = None
+
+    def create_chunk_service(
         self,
         chunk_size: int = 400,
         retrieval_method: str = "bm25",
@@ -72,9 +85,9 @@ class RetrievalEvaluator:
         reranker_method: Optional[str] = None,
         reranker_kwargs: Optional[Dict] = None,
         processor_class: str = "PyPDF2Processor",
-    ) -> SimpleRAGDocumentAgent:
-        """Create a RAG agent with specified configuration."""
-        
+    ) -> ChunkService:
+        """Create a ChunkService with specified configuration."""
+
         # Convert string processor class name to actual class
         if isinstance(processor_class, str):
             actual_processor_class = self.processor_classes.get(processor_class)
@@ -83,18 +96,30 @@ class RetrievalEvaluator:
         else:
             actual_processor_class = processor_class
 
-        return SimpleRAGDocumentAgent(
-            model_id=self.model_id,
-            base_url_llm=self.base_url,
-            processor_class=actual_processor_class,
-            processor_kwargs={},
-            system_prompt="You are an expert document analyst.",
+        # Create ChunkService with the same configuration
+        # We need to extract top_k values from retrieval_kwargs and reranker_kwargs
+        retrieval_kwargs = retrieval_kwargs or {}
+        reranker_kwargs = reranker_kwargs or {}
+
+        # Extract top_k values, with backward compatibility
+        top_k_retrieval = retrieval_kwargs.pop(
+            "top_k", 10
+        )  # Remove from kwargs to avoid conflicts
+        top_k_rerank = reranker_kwargs.pop(
+            "top_k", 10
+        )  # Remove from kwargs to avoid conflicts
+
+        return ChunkService(
             chunk_size=chunk_size,
             retrieval_method=retrieval_method,
             retrieval_kwargs=retrieval_kwargs or {},
             reranker_method=reranker_method,
             reranker_kwargs=reranker_kwargs or {},
-            sampling_params={"temperature": 0.1, "max_tokens": 300},
+            processor_class=actual_processor_class,
+            processor_kwargs={},
+            max_tokens=-1,  # -1 means always use chunking (default behavior)
+            top_k_retrieval=top_k_retrieval,
+            top_k_rerank=top_k_rerank,
         )
 
     def judge_chunks_relevance_batch(
@@ -102,21 +127,21 @@ class RetrievalEvaluator:
     ) -> List[Dict[str, Any]]:
         """
         Use LLM judge to evaluate all retrieved chunks at once for relevance to answering the question.
-        
+
         Args:
             question: The question being asked
             chunks: List of retrieved chunks to evaluate
             expected_answer: The expected answer for reference
-        
+
         Returns:
             List of dicts with 'is_relevant' (bool) for each chunk in order
         """
-        
+
         # Format chunks with indices for the prompt
         formatted_chunks = ""
         for i, chunk in enumerate(chunks, 1):
             formatted_chunks += f"\n--- Chunk {i} ---\n{chunk}\n"
-        
+
         judge_prompt = f"""
 You are an expert judge evaluating the relevance of text chunks for answering questions.
 
@@ -153,17 +178,19 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
                 # Use json-repair by default for more robust parsing
                 repaired_response = repair_json(response.strip())
                 result = json.loads(repaired_response)
-                
+
                 # Extract relevance results from simplified format
                 relevant_array = result.get("relevant", [])
-                
+
                 # Create results list in the same order as input chunks
                 results = []
                 for i in range(len(chunks)):
                     # Get relevance for this chunk (default to False if missing)
-                    is_relevant = relevant_array[i] if i < len(relevant_array) else False
+                    is_relevant = (
+                        relevant_array[i] if i < len(relevant_array) else False
+                    )
                     results.append({"is_relevant": bool(is_relevant)})
-                
+
                 return results
 
             except Exception as e:
@@ -176,7 +203,7 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
         except Exception as e:
             print(f"Error in batch judge evaluation: {e}")
             return [{"is_relevant": False} for _ in chunks]
-    
+
     def judge_chunk_relevance(
         self, question: str, chunk: str, expected_answer: str
     ) -> Dict[str, Any]:
@@ -194,12 +221,12 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
         self,
         example: Dict[str, Any],
         document_text: str,
-        rag_agent: SimpleRAGDocumentAgent,
+        chunk_service: ChunkService,
         top_k_retrieval: int = 10,
         top_k_rerank: int = 10,
     ) -> Tuple[Dict[str, Any], float]:
         """
-        Evaluate retrieval performance for a single example.
+        Evaluate retrieval performance for a single example using ChunkService.
 
         Returns evaluation metrics including MRR-related data and timing for core operations.
         """
@@ -210,16 +237,25 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
         # Start timing for core retrieval operations only
         core_start_time = time.time()
 
-        # Split document into chunks (same as RAG agent)
-        chunks = split_into_multi_chunks(document_text, chunk_size=rag_agent.chunk_size)
+        # Create chat history with the question
+        chat_history = [{"role": "user", "content": question}]
 
-        if not chunks:
-            core_time = time.time() - core_start_time
+        # Use ChunkService to process document and retrieve chunks
+        result = chunk_service.process_document_and_retrieve_chunks(
+            document_text=document_text,
+            chat_history=chat_history,
+        )
+
+        # End timing for core operations (before judge calls)
+        core_time = time.time() - core_start_time
+
+        # Handle errors
+        if "error" in result:
             return {
                 "question": question,
                 "expected_answer": expected_answer,
                 "is_error": True,
-                "error": "No chunks generated from document",
+                "error": result["error"],
                 "retrieved_chunks": [],
                 "relevance_scores": [],
                 "first_relevant_rank": None,
@@ -227,21 +263,8 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
                 "map_data": {"relevant_ranks": [], "average_precision": 0.0},
             }, core_time
 
-        # Retrieve chunks using the RAG agent's retrieval system
-        retrieved_chunks = rag_agent.retrieval.retrieve(
-            query=question, documents=chunks, top_k=top_k_retrieval  # Retrieve more for evaluation
-        )
-
-        # Apply reranking if available
-        if rag_agent.reranker:
-            retrieved_chunks = rag_agent.reranker.rerank(
-                query=question, documents=retrieved_chunks, top_k=top_k_rerank
-            )
-        else:
-            retrieved_chunks = retrieved_chunks[:top_k_rerank]
-
-        # End timing for core operations (before judge calls)
-        core_time = time.time() - core_start_time
+        # Get retrieved chunks directly from result
+        retrieved_chunks = result["selected_chunks"]
 
         # Judge relevance of all retrieved chunks at once
         relevance_evaluations = []
@@ -249,10 +272,14 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
 
         # Use batch judging for all chunks at once
         try:
-            batch_results = self.judge_chunks_relevance_batch(question, retrieved_chunks, expected_answer)
-            
+            batch_results = self.judge_chunks_relevance_batch(
+                question, retrieved_chunks, expected_answer
+            )
+
             # Process results and maintain rank order
-            for rank, (chunk, judge_result) in enumerate(zip(retrieved_chunks, batch_results), 1):
+            for rank, (chunk, judge_result) in enumerate(
+                zip(retrieved_chunks, batch_results), 1
+            ):
                 relevance_evaluations.append(
                     {
                         "rank": rank,
@@ -262,7 +289,7 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
                 )
                 if judge_result["is_relevant"]:
                     relevant_ranks.append(rank)
-                    
+
         except Exception as e:
             print(f"Error in batch judge evaluation: {e}")
             # Fallback to marking all as not relevant
@@ -291,16 +318,18 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
         # Prepare detailed chunk information for JSONL logging
         detailed_chunks = []
         for evaluation in relevance_evaluations:
-            detailed_chunks.append({
-                "rank": evaluation["rank"],
-                "chunk_text": evaluation["chunk"],
-                "is_relevant": evaluation["is_relevant"]
-            })
+            detailed_chunks.append(
+                {
+                    "rank": evaluation["rank"],
+                    "chunk_text": evaluation["chunk"],
+                    "is_relevant": evaluation["is_relevant"],
+                }
+            )
 
         return {
             "question": question,
             "expected_answer": expected_answer,
-            "total_chunks": len(chunks),
+            "total_chunks": result["chunks_count"],
             "is_error": False,
             "retrieved_chunks": retrieved_chunks,  # Keep for internal use (calculate_map, etc.)
             "detailed_chunks": detailed_chunks,  # Consolidated chunk info for JSONL logging
@@ -330,7 +359,7 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
 
     def calculate_mrr(self, evaluation_results: List[Dict[str, Any]]) -> float:
         """Calculate Mean Reciprocal Rank from evaluation results."""
-        
+
         reciprocal_ranks = []
         for result in evaluation_results:
             if "first_relevant_rank" in result:
@@ -339,10 +368,10 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
                     reciprocal_ranks.append(1.0 / first_rank)
                 else:
                     reciprocal_ranks.append(0.0)
-        
+
         if not reciprocal_ranks:
             return 0.0
-        
+
         return np.mean(reciprocal_ranks)
 
     def evaluate_dataset(
@@ -354,7 +383,7 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
         max_examples: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
-        Evaluate retrieval performance on a dataset of examples.
+        Evaluate retrieval performance on a dataset of examples using ChunkService.
 
         Args:
             examples: List of evaluation examples
@@ -367,10 +396,10 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
             Dictionary containing evaluation results and metrics
         """
 
-        # Create RAG agent with specified configuration
-        rag_agent = self.create_rag_agent(**rag_config)
+        # Create ChunkService with specified configuration
+        chunk_service = self.create_chunk_service(**rag_config)
         # Store reference for cleanup
-        self._current_rag_agent = rag_agent
+        self._current_chunk_service = chunk_service
 
         # Limit examples if specified
         if max_examples:
@@ -385,19 +414,19 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
 
         for i, example in enumerate(pbar):
             pbar.set_description(f"Processing {example['doc_id'][:20]}...")
-            
+
             # Load document if not cached
             doc_id = example["doc_id"]
             doc_ingestion_time = 0.0
-            
+
             if doc_id not in processed_docs:
                 # Start timing for document ingestion only
                 doc_start_time = time.time()
-                
+
                 doc_path = document_dir / doc_id
                 if doc_path.exists():
                     try:
-                        document_text = rag_agent.document_processor.file_to_text(
+                        document_text = chunk_service.document_processor.file_to_text(
                             doc_path
                         )
                         processed_docs[doc_id] = document_text
@@ -417,9 +446,9 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
                 settings = settings or {}
                 top_k_retrieval = settings.get("top_k_retrieval", 10)
                 top_k_rerank = settings.get("top_k_rerank", 10)
-                
+
                 result, core_retrieval_time = self.evaluate_retrieval_for_example(
-                    example, document_text, rag_agent, top_k_retrieval, top_k_rerank
+                    example, document_text, chunk_service, top_k_retrieval, top_k_rerank
                 )
                 result["doc_id"] = doc_id
                 result["example_index"] = i
@@ -470,7 +499,7 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
 
         # Clean up GPU memory after evaluating this configuration
         # Move models to CPU to truly free GPU memory
-        rag_agent.move_models_to_cpu()
+        chunk_service.cleanup_models()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         gc.collect()
@@ -480,24 +509,20 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
             "evaluation_results": evaluation_results,
             "config": rag_config,
         }
-    
+
     def log_detailed_result_to_jsonl(
-        self, 
-        result: Dict[str, Any], 
-        config_name: str, 
-        config_id: int, 
-        jsonl_file: Path
+        self, result: Dict[str, Any], config_name: str, config_id: int, jsonl_file: Path
     ):
         """
         Log detailed evaluation result to JSONL file.
-        
+
         Args:
             result: Evaluation result from evaluate_retrieval_for_example
             config_name: Name of the configuration being evaluated
             config_id: ID of the configuration
             jsonl_file: Path to JSONL output file
         """
-        
+
         # Prepare JSONL entry with essential information only
         jsonl_entry = {
             "config_id": config_id,
@@ -509,27 +534,29 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
             "question": result.get("question", ""),
             "expected_answer": result.get("expected_answer", ""),
             "total_chunks": result.get("total_chunks", 0),
-            "retrieved_chunks": result.get("detailed_chunks", []),  # Only the consolidated chunk info
+            "retrieved_chunks": result.get(
+                "detailed_chunks", []
+            ),  # Only the consolidated chunk info
             "relevant_ranks": result.get("relevant_ranks", []),
             "average_precision": result.get("average_precision", 0.0),
             "first_relevant_rank": result.get("first_relevant_rank"),
             "reciprocal_rank": result.get("reciprocal_rank", 0.0),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
-        
+
         # Append to JSONL file
         with open(jsonl_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(jsonl_entry, ensure_ascii=False) + "\n")
 
-    def cleanup_current_agent(self):
-        """Clean up the current RAG agent and free GPU memory."""
-        if self._current_rag_agent:
+    def cleanup_current_service(self):
+        """Clean up the current ChunkService and free GPU memory."""
+        if self._current_chunk_service:
             try:
-                self._current_rag_agent.move_models_to_cpu()
+                self._current_chunk_service.cleanup_models()
             except Exception as e:
-                print(f"Warning: Could not move models to CPU: {e}")
+                print(f"Warning: Could not cleanup models: {e}")
             finally:
-                self._current_rag_agent = None
+                self._current_chunk_service = None
 
 
 def load_evaluation_configs(
@@ -603,9 +630,9 @@ def main():
     base_jsonl = settings.get("jsonl_filename", "retrieval_evaluation_detailed.jsonl")
 
     # Add timestamp to filenames and put in output folder
-    csv_name = base_csv.replace(".csv", f"_{timestamp}.csv")
-    json_name = base_json.replace(".json", f"_{timestamp}.json")
-    jsonl_name = base_jsonl.replace(".jsonl", f"_{timestamp}.jsonl")
+    csv_name = base_csv.replace(".csv", f"_migrated_{timestamp}.csv")
+    json_name = base_json.replace(".json", f"_migrated_{timestamp}.json")
+    jsonl_name = base_jsonl.replace(".jsonl", f"_migrated_{timestamp}.jsonl")
     csv_file = output_dir / csv_name
     json_file = output_dir / json_name
     jsonl_file = output_dir / jsonl_name
@@ -648,7 +675,7 @@ def main():
         config_pbar.set_description(f"Config: {config_name[:30]}...")
 
         try:
-            # Create a clean config without display fields for RAG agent
+            # Create a clean config without display fields for ChunkService
             rag_config = {k: v for k, v in config.items() if k != "name"}
 
             results = evaluator.evaluate_dataset(
@@ -660,16 +687,16 @@ def main():
             )
 
             all_results.append(results)
-            
+
             # Log detailed results to JSONL file
             for result in results["evaluation_results"]:
                 evaluator.log_detailed_result_to_jsonl(
                     result=result,
                     config_name=config_name,
                     config_id=i + 1,
-                    jsonl_file=jsonl_file
+                    jsonl_file=jsonl_file,
                 )
-            
+
             # Update progress bar with results
             metrics = results["metrics"]
             tqdm.write(
@@ -704,12 +731,12 @@ def main():
 
             tqdm.write(f"Error evaluating {config_name}: {e}")
             traceback.print_exc()
-        
+
         finally:
             # Clean up GPU memory after each configuration evaluation
             # This is important because different configs may use different models
-            evaluator.cleanup_current_agent()
-            
+            evaluator.cleanup_current_service()
+
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
             gc.collect()

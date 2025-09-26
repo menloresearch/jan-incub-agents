@@ -24,4 +24,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "plotly>=6.3.0",
     "marker-pdf>=1.10.0",
+    "fastapi>=0.117.1",
+    "uvicorn>=0.37.0",
+    "python-multipart>=0.0.20",
 ]
