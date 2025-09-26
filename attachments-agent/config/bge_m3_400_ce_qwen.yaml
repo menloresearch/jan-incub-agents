@@ -1,0 +1,8 @@
+name: "BAAI BGE-M3 + Qwen Reranker"
+chunk_size: 400
+retrieval_method: "sentence-transformers"
+retrieval_kwargs:
+  model_name: "BAAI/bge-m3"
+reranker_method: "qwen-reranker"
+reranker_kwargs:
+  model_name: "Qwen/Qwen3-Reranker-0.6B"

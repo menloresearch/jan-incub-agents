@@ -195,6 +195,8 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
         example: Dict[str, Any],
         document_text: str,
         rag_agent: SimpleRAGDocumentAgent,
+        top_k_retrieval: int = 10,
+        top_k_rerank: int = 10,
     ) -> Tuple[Dict[str, Any], float]:
         """
         Evaluate retrieval performance for a single example.
@@ -227,14 +229,16 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
 
         # Retrieve chunks using the RAG agent's retrieval system
         retrieved_chunks = rag_agent.retrieval.retrieve(
-            query=question, documents=chunks, top_k=10  # Retrieve more for evaluation
+            query=question, documents=chunks, top_k=top_k_retrieval  # Retrieve more for evaluation
         )
 
         # Apply reranking if available
         if rag_agent.reranker:
             retrieved_chunks = rag_agent.reranker.rerank(
-                query=question, documents=retrieved_chunks, top_k=10
+                query=question, documents=retrieved_chunks, top_k=top_k_rerank
             )
+        else:
+            retrieved_chunks = retrieved_chunks[:top_k_rerank]
 
         # End timing for core operations (before judge calls)
         core_time = time.time() - core_start_time
@@ -346,6 +350,7 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
         examples: List[Dict[str, Any]],
         document_dir: Path,
         rag_config: Dict[str, Any],
+        settings: Optional[Dict[str, Any]] = None,
         max_examples: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
@@ -355,6 +360,7 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
             examples: List of evaluation examples
             document_dir: Directory containing PDF documents
             rag_config: RAG configuration parameters
+            settings: Evaluation settings (including top_k values)
             max_examples: Maximum number of examples to evaluate (for testing)
 
         Returns:
@@ -407,8 +413,13 @@ Respond with valid JSON in this exact format (just a simple array of true/false 
 
             # Evaluate retrieval for this example
             try:
+                # Get top_k values from settings, with defaults
+                settings = settings or {}
+                top_k_retrieval = settings.get("top_k_retrieval", 10)
+                top_k_rerank = settings.get("top_k_rerank", 10)
+                
                 result, core_retrieval_time = self.evaluate_retrieval_for_example(
-                    example, document_text, rag_agent
+                    example, document_text, rag_agent, top_k_retrieval, top_k_rerank
                 )
                 result["doc_id"] = doc_id
                 result["example_index"] = i
@@ -644,6 +655,7 @@ def main():
                 examples=examples,
                 document_dir=document_dir,
                 rag_config=rag_config,
+                settings=settings,
                 max_examples=max_examples,
             )
 
