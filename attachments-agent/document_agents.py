@@ -4,13 +4,10 @@ from typing import List, Dict, Any, Type, Optional
 import sys
 import os
 
-# Add poc directory to path to import ChunkService
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "poc"))
-
-from processors import ProcessorBase
+from poc_document_retrieval.modules.processors import ProcessorBase
 from llm_wrapper import OpenAIApiWrapper
-from utils import Tokenizer
-from chunk_service import ChunkService
+from poc_document_retrieval.modules.utils import Tokenizer
+from poc_document_retrieval.modules.chunk_service import ChunkService
 
 
 class DocumentAgentBase(ABC):

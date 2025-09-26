@@ -22,18 +22,18 @@ from tqdm import tqdm
 from json_repair import repair_json
 import sys
 
-# Add poc directory to path to import ChunkService
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "poc"))
-
-from chunk_service import ChunkService, create_chunk_service_from_config
-from processors import (
+from poc_document_retrieval.modules.chunk_service import (
+    ChunkService,
+    create_chunk_service_from_config,
+)
+from poc_document_retrieval.modules.processors import (
     PyPDF2Processor,
     MarkItDownProcessor,
     DoclingProcessor,
     NativeProcessor,
     MarkerProcessor,
 )
-from utils import split_into_multi_chunks
+from poc_document_retrieval.modules.utils import split_into_multi_chunks
 from llm_wrapper import OpenAIApiWrapper
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import traceback

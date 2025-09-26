@@ -5,17 +5,14 @@ import yaml
 import sys
 import os
 
-# Add parent directory to path to import from attachments-agent
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-from processors import (
+from .processors import (
     ProcessorBase,
     PyPDF2Processor,
     MarkItDownProcessor,
     DoclingProcessor,
     MarkerProcessor,
 )
-from utils import split_into_multi_chunks, load_retrieval, load_reranker, Tokenizer
+from .utils import split_into_multi_chunks, load_retrieval, load_reranker, Tokenizer
 
 
 class ChunkService:

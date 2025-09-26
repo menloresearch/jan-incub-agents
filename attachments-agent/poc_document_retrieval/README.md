@@ -10,7 +10,7 @@ Run the server with a configuration file:
 
 ```bash
 export CHUNK_SERVICE_CONFIG="bge_m3_400.yaml"
-uv run uvicorn main:app
+uv run uvicorn modules.main:app
 ```
 
 ### API Endpoints
@@ -25,7 +25,8 @@ Upload a document file and retrieve relevant chunks based on chat history.
 **Form Data:**
 - `file`: Document file (PDF or TXT)
 - `chat_history`: JSON string of chat history
-- `max_tokens`: Optional maximum tokens
+- `max_tokens`: Optional maximum tokens. Default: -1 (None)
+- `clear_retrieval_history`: Remove previously retrieved chunks in the conversation. Default: False
 
 **Example Request:**
 ```bash
@@ -39,7 +40,7 @@ curl -X POST "http://localhost:8000/chunk-upload" \
 {
   "chat_history": [
     {
-      "role": "system", 
+      "role": "user", 
       "content": "Retrieved relevant information from the document:\n\nChunk 1:\n[retrieved content]"
     },
     {"role": "user", "content": "What is this document about?"}

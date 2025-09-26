@@ -55,7 +55,7 @@ configs:
 
 # Evaluation settings
 settings:
-  max_examples: 2
+  # max_examples: 2
   output_dir: "results"
   csv_filename: "retrieval_evaluation_results_top_50.csv"
   json_filename: "retrieval_evaluation_results_top_50.json"

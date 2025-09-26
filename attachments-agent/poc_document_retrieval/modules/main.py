@@ -9,10 +9,10 @@ from pathlib import Path
 import uvicorn
 import sys
 
-# Add parent directory to path to import chunk_service from attachments-agent
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-from chunk_service import ChunkService, create_chunk_service_from_config
+from modules.chunk_service import (
+    ChunkService,
+    create_chunk_service_from_config,
+)
 
 
 # Pydantic models for request/response

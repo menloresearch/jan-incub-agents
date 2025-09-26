@@ -28,3 +28,6 @@ dependencies = [
     "uvicorn>=0.37.0",
     "python-multipart>=0.0.20",
 ]
+
+[tool.uv.workspace]
+members = ["poc_document_retrieval"]

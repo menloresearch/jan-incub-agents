@@ -16,11 +16,9 @@ from PIL import Image
 import io
 import base64
 
-from processors import PyPDF2Processor
+from poc_document_retrieval.modules.processors import PyPDF2Processor
 
 from document_agents import SimpleRAGDocumentAgent
-
-# from document_agents_migrated import SimpleRAGDocumentAgent
 
 # Configure Streamlit page
 st.set_page_config(
