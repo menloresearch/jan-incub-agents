@@ -1,0 +1,26 @@
+# Core dependencies
+fastapi>=0.117.1
+pypdf2>=3.0.1
+python-multipart>=0.0.20
+pyyaml>=6.0.3
+sentence-transformers>=5.1.1
+torch>=2.8.0
+uvicorn>=0.37.0
+
+# Optional dependencies for advanced features
+# Uncomment the ones you need:
+
+# For enhanced tokenization
+# tiktoken
+
+# For additional document processors
+# markitdown          # MarkItDownProcessor
+# docling             # DoclingProcessor
+# marker-pdf          # MarkerProcessor
+
+# For advanced reranking
+# transformers        # QwenReranker
+
+# For scikit-learn based similarity (used by sentence-transformers)
+scikit-learn
+numpy
